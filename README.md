@@ -21,13 +21,54 @@ Capture managers often operate under intense time pressure, with limited visibil
 
 ---
 
-## 🔍 Data Sources
+## Data Sources
 - [USAspending.gov](https://www.usaspending.gov/) — Contract award data from HHS, CMS, NIH, and VA  
 - FPDS or SAM.gov (optional): Enrichment from solicitations or contract details  
 - Fields used: Award Amount, Number of Bidders, Set-Aside Type, NAICS, PSC, Agency, Award Type, Place of Performance, and more
 
 ---
 
-## 🧹 Data Preparation
+## Data Preparation
 - Filtered dataset for awarded Health IT-related contracts from 2018–2024
 - Cleaned inconsistent award formats and agency naming conventions
+- Engineered features: average bids per NAICS, contract competitiveness score, seasonality, and more
+
+---
+
+## Modeling Approach
+- Regression models: XGBoost, Random Forest, Lasso
+- Evaluation: RMSE, MAE, cross-validation
+- Model interpretation: SHAP feature importance, residual analysis
+
+---
+
+## Key Insights
+- The top predictors of award amounts included agency, contract type, NAICS code, and number of bids received
+- Health IT bids varied significantly by agency, with CMS and NIH showing tighter pricing thresholds
+- Competitive awards (5+ bidders) tended to fall within a narrower bid range than sole source or set-asides
+
+---
+
+## Strategic Takeaways for Capture Managers
+- **Price-to-Win Estimation Tool**: Outputs bid amount ranges likely to win under different scenarios
+- **Bid/No-Bid Decision Support**: Predictive likelihood of success by opportunity type
+- **Agency-Specific Strategy**: Tailor pricing strategy by department (e.g., HHS vs. VA)
+
+---
+
+## Demo (Optional)
+_Try the model by inputting a sample opportunity to see a predicted winning bid range._  
+_(Planned using Streamlit or Gradio – see below)_
+
+---
+
+## Project Structure
+
+```bash
+federal-bid-prediction/
+ ┣ 📂data/               # Cleaned datasets & data dictionary
+ ┣ 📂notebooks/          # EDA, modeling, and feature engineering
+ ┣ 📂outputs/            # Visualizations, model artifacts
+ ┣ 📂docs/               # Executive summary, deck, README assets
+ ┣ 📄README.md
+ ┗ 📄requirements.txt
