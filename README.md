@@ -104,7 +104,7 @@ federal-bid-prediction/
 
 ## About the Author
 
-**Casey Ortiz**  
+👤 **Casey Ortiz**  
 
 📍 Annapolis, MD  
 🎓 UVA Darden MBA | Google Data Analytics Certified  
