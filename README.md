@@ -93,14 +93,23 @@ These tools allow capture teams to simulate opportunity inputs and view pricing 
 
 ```bash
 federal-bid-prediction/
- ┣ 📂data/               # Cleaned datasets & data dictionary
- ┣ 📂notebooks/          # EDA, modeling, and feature engineering
- ┣ 📂outputs/            # Visualizations, SHAP, leaderboards
- ┣ 📂docs/               # Executive summary, case study text
- ┣ 📄federal-bid-prediction.ipynb   # Python modeling notebook
- ┣ 📄federal_bid_prediction.Rmd     # R-based data cleaning & summary
- ┣ 📄README.md
- ┗ 📄requirements.txt
+├── data/           # Cleaned data and dictionary
+│   ├── health_it_cleaned.csv
+│   └── data_dictionary.md
+├── docs/           # RMarkdown + rendered HTML
+│   ├── federal_bid_prediction.Rmd
+│   └── federal_bid_prediction.html
+├── notebooks/      # Python notebook
+│   └── federal_bid_prediction.ipynb
+├── outputs/        # Visuals and plots
+│   └── shap_*.png
+├── pipelines/      # R + Python scripts
+│   ├── eda_pipeline.R
+│   └── model_pipeline.py
+├── requirements.txt
+├── Makefile
+├── LICENSE
+└── README.md
 ```
 
 ---
