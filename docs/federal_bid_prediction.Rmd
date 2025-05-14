@@ -1,0 +1,285 @@
+---
+title: ""
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 2
+    number_sections: false
+    theme: flatly
+    highlight: tango
+  pdf_document:
+    latex_engine: xelatex
+    toc: true
+    toc_depth: 2
+    number_sections: true
+---
+
+<!-- ✅ Custom Banner -->
+<div style="background-color: #2C3E50; color: white; padding: 24px; border-radius: 6px; margin: 30px 0 20px 0; text-align: center;">
+  <h2 style="margin: 0 0 10px 0;">Predicting Federal Health IT Contract Awards</h2>
+  <p style="margin: 0;">Case Study by <strong>Casey Ortiz</strong> — <em>`r format(Sys.Date(), "%B %d, %Y")`</em></p>
+</div>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+## Executive Summary
+
+In the competitive world of federal Health IT contracting, accurately pricing a bid is critical to winning business. As a Data Analyst supporting a capture team — modeled on the Capture Manager I role at DLH Corp — I built a predictive analytics tool using over 43,000 historical federal contract awards to estimate award amounts and support smarter bid strategies.
+
+This project aligns with key capture functions:
+
+* **Price-to-Win (PTW) Analysis**: Predicts expected award values with confidence ranges
+* **Strategic Insight**: Surfaces which contract characteristics most influence pricing
+* **Decision Support**: Provides interpretable outputs to guide bid/no-bid and pricing strategy
+
+Two interactive web apps were deployed to support the business case:
+
+🔗 [Award Amount Estimator](https://ay7jcdeztbpknhyxxbn5h3.streamlit.app)
+🔗 [Bid Range Confidence Tool](https://federal-healthit-bid-predictor-mzxes68t2cusms5kmjuyyr.streamlit.app)
+
+### Problem Statement
+
+> **How can predictive analytics support a Capture Manager’s ability to estimate competitive bid amounts and improve win rates in the Civilian Federal Health IT space?**
+
+Federal capture teams face high-stakes decisions — often with limited visibility into what a winning bid should look like. This project aims to de-risk those decisions using data-driven modeling of historical awards.
+
+The project directly supports DLH Capture Manager responsibilities:
+- Conducting Price-to-Win (PTW) analyses
+- Leading fast-turnaround bids
+- Supporting solution architects with pricing insight
+- Informing bid/no-bid and transition strategy
+
+### Project Objectives
+
+1. Acquire and clean federal Health IT award data (USAspending.gov)
+2. Engineer features relevant to contract pricing (NAICS, agency, set-aside, offers)
+3. Train regression models to predict award amounts (log scale)
+4. Interpret results using SHAP values and PDP++
+5. Deploy interactive apps for strategic planning and bid confidence
+6. Package findings in a business-facing case study format
+
+### Data Sources
+
+- Source: USAspending.gov, 2018–2025 awards
+- Filter: NAICS 541511, 541512, 541519
+- Agencies: HHS and VA (Civilian Health IT focus)
+- Target: `award_amount` (log-transformed)
+
+---
+
+## Data Preparation
+
+### Load Libraries
+
+```{r Load Libraries}
+# Load necessary packages
+library(readr)
+library(dplyr)
+library(janitor)
+library(ggplot2)
+library(scales)
+```
+
+### Load Raw Contract Award Data
+
+```{r Load Raw Contract Award Data}
+# Load and define column types up front
+df <- read_csv("it_awards_raw.csv",
+  col_types = cols(
+    number_of_offers_received = col_double(),
+    current_total_value_of_award = col_double(),
+    type_of_contract_pricing = col_character(),
+    type_of_set_aside = col_character(),
+    naics_code = col_character(),
+    naics_description = col_character(),
+    awarding_agency_name = col_character(),
+    recipient_name = col_character(),
+    award_id_piid = col_character(),
+    period_of_performance_start_date = col_date(format = ""),
+    period_of_performance_current_end_date = col_date(format = ""),
+    primary_place_of_performance_state_code = col_character()
+  )
+) %>% clean_names()
+
+```
+
+### Filter to Health IT-Relevant Contracts
+
+This step focuses the analysis on contracts most relevant to federal Health IT and tech modernization efforts (NAICS 541511, 541512, 541519). We exclude records with no monetary value or potential data entry issues (e.g., awards under $10K).
+
+```{r Focus: Health IT-Relevant Contracts (NAICS 541511, 541512, 541519}
+# Filter to Health IT-relevant NAICS codes and remove null/invalid award values
+df_it <- df %>%
+  filter(naics_code %in% c("541511", "541512", "541519")) %>%
+  filter(!is.na(current_total_value_of_award),
+         current_total_value_of_award > 10000)
+```
+
+### Feature Selection and Standardization
+
+```{r Feature Selection and Standardization}
+# Select relevant variables and rename for clarity
+df_model <- df_it %>%
+  transmute(
+    award_id = award_id_piid,
+    recipient = recipient_name,
+    agency = awarding_agency_name,
+    naics_code = naics_code,
+    naics_description = naics_description,
+    award_amount = current_total_value_of_award,
+    offers_received = number_of_offers_received,
+    set_aside = type_of_set_aside,
+    pricing_type = type_of_contract_pricing,
+    state = primary_place_of_performance_state_code,
+    start_date = period_of_performance_start_date,
+    end_date = period_of_performance_current_end_date
+  )
+```
+
+### Handle Missing Values
+
+These adjustments ensure we retain most of the dataset while avoiding bias from missing values. Set-aside and pricing type are critical for understanding contract strategy.
+
+```{r Handle Missing Values}
+# Impute missing offers_received (~9%) with median
+median_offers <- median(df_model$offers_received, na.rm = TRUE)
+df_model$offers_received[is.na(df_model$offers_received)] <- median_offers
+
+# Replace missing set_aside (~56%) with 'None'
+df_model$set_aside[is.na(df_model$set_aside)] <- "None"
+
+# Drop rows missing pricing_type (only 8 rows)
+df_model <- df_model %>% filter(!is.na(pricing_type))
+
+# Optionally replace missing state with 'Unknown'
+df_model$state[is.na(df_model$state)] <- "Unknown"
+
+```
+
+### Export Cleaned Dataset
+
+```{r Export Cleaned Dataset}
+# Save cleaned version for modeling
+write_csv(df_model, "health_it_cleaned.csv")
+```
+
+---
+
+## Data Exploration
+
+After cleaning and filtering the dataset to focus on NAICS 541511, 541512, and 541519 codes, we analyzed the distribution of award amounts to understand contract size variability in federal Health IT.
+
+We found that award values ranged from $10,000 to well over $1 billion, with a heavy right skew. Most awards clustered between $100,000 and $50 million — making it essential to use a log transformation when modeling.
+
+### Distribution of Award Amounts (Log Scale)
+
+```{r award-distribution, echo=TRUE, message=FALSE, warning=FALSE}
+library(ggplot2)
+library(scales)
+
+ggplot(df_model, aes(x = award_amount)) +
+  geom_histogram(bins = 50, fill = "steelblue") +
+  scale_x_log10(
+    breaks = c(1e4, 1e5, 1e6, 1e7, 1e8, 1e9),
+    labels = dollar_format(prefix = "$", scale = 1)
+  ) +
+  labs(
+    title = "Distribution of Federal Health IT Award Amounts",
+    x = "Award Amount (log scale)",
+    y = "Count"
+  )
+```
+This histogram supports our decision to model the log of award amount in the regression phase, improving interpretability and performance.
+
+### Check for Remaining Missing Values
+```{r Check for Remaining Missing Values}
+# Check for NA values
+colSums(is.na(df_model))
+```
+
+---
+
+## Modeling Approach (in Python)
+
+To predict award amounts, I exported the cleaned dataset to CSV and built a regression pipeline in Python using:
+
+- **Feature Engineering** (One-hot encoding for categorical variables)
+- **XGBoost Regression**
+- **Model Evaluation** (RMSE, R²)
+- **Interpretation** using SHAP values and Partial Dependence Plots
+- **Deployment** via Streamlit apps
+
+## Model Leaderboard
+
+| Model                      | Features                                               | RMSE | R²  | Notes                                               |
+|---------------------------|--------------------------------------------------------|------|-----|-----------------------------------------------------|
+| XGBoost (Full Features)   | 36 features                                            | 1.71 | 0.35| Full feature set, manually tuned parameters         |
+| Random Forest v1          | Log(target), One-hot (NAICS, set_aside, agency...)     | 1.72 | 0.34| Baseline model with full categorical encoding       |
+| XGBoost (Top Features)    | naics_code_541512, naics_code_541519, pricing_...      | 1.72 | 0.34| XGBoost on top 9 features, default params           |
+| XGBoost (Tuned Top Features) | naics_code_541512, naics_code_541519, pricing_...   | 1.72 | 0.34| Tuned via RandomizedSearchCV                        |
+| Random Forest (Top Features) | naics_code_541512, naics_code_541519, pricing_...   | 1.73 | 0.33| Simplified model using top 9 features               |
+
+## SHAP Analysis: Feature Importance & Interaction
+
+To interpret the trained model, I used SHAP (SHapley Additive exPlanations) to understand the contribution of each feature to the model’s predictions. These visualizations help translate ML outputs into actionable pricing insights for capture teams.
+
+### SHAP Summary Bar Plot
+
+```{r shap-bar, echo=FALSE, fig.align='center', out.width='80%'}
+knitr::include_graphics("shap_summary_bar.png")
+```
+
+Interpretation:
+This plot shows the average absolute impact of each feature on predicted award amounts. The NAICS code 541512 (custom programming services) was the strongest predictor, followed by firm fixed-price contract types, number of offers received, and the 541519 NAICS code (other computer-related services).
+
+### SHAP Beeswarm Plot
+
+```{r beeswarm plot}
+knitr::include_graphics("shap_beeswarm_plot.png")
+```
+
+Interpretation:
+The beeswarm plot reveals how feature values influence predictions. Red dots (high feature values) often push award amounts higher (right), while blue dots (low values) typically reduce them (left). Firm fixed-price contracts and NAICS 541512 again emerge as dominant factors.
+
+### SHAP Dependence Plot
+
+```{r dependence plot}
+knitr::include_graphics("shap_interaction_plot.png")
+```
+
+Interpretation:
+This SHAP dependence plot illustrates a key interaction: when the NAICS code is 541512, contracts using firm fixed-price types tend to have significantly higher predicted award amounts. This supports the idea that DLH-style Health IT work with clear deliverables and fixed scope commands higher prices.
+
+You can view the full Python notebook here:  
+🔗 [federal-bid-prediction.ipynb](https://colab.research.google.com/drive/1KLwzWpZgNkDbzM_JJkN6JaSkN_Nu55Yt?usp=sharing)
+
+## Conclusion 
+
+This case study demonstrates how data analytics can support price-to-win (PTW) strategies and capture planning in the federal Health IT space. By analyzing over 43,000 historical contracts, I built a machine learning model that estimates likely award amounts based on features like NAICS code, pricing type, agency, and set-aside structure.
+
+Key outcomes:
+
+- 📊 Created a cleaned dataset focused on Health IT-relevant NAICS codes
+- ⚙️ Built a log-scale XGBoost regression model with an RMSE of 1.71 and R² of 0.35
+- 🧠 Interpreted the model using SHAP and PDP++ to highlight key predictors
+- 🚀 Deployed two Streamlit apps to support bid pricing and confidence range estimation
+
+These tools give federal capture teams the ability to:
+- Benchmark expected award amounts
+- Guide bid/no-bid decisions
+- Support proposal pricing with data-backed rationale
+
+### Next Steps
+
+- Continue tuning models using Optuna or LightGBM for performance gains
+- Incorporate seasonal and historical agency trends as time-based features
+- Build classification models to estimate probability of award at a given bid level
+- Explore integration into internal dashboards for BD and pricing teams
+
+This project was designed with the **Capture Manager I** role in mind, but the tools and methodology are also well-suited for any data analyst or federal business strategist supporting BD, proposal, or pricing functions.
+
+---
+
