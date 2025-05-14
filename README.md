@@ -46,6 +46,9 @@ Capture teams often operate with limited budget insight or price transparency. B
   - Contract pricing type logic
   - Seasonal timing (Q1–Q4)
 
+**View the R-based data cleaning and exploration:**  
+🔗 [federal_bid_prediction.html](docs/federal_bid_prediction.html)
+
 ---
 
 ## Modeling Approach
