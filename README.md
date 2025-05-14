@@ -25,11 +25,11 @@ Capture teams often operate with limited budget insight or price transparency. B
 - Predict award amounts using past contract data
 - Identify key drivers of pricing variation across NAICS and agencies
 - Deliver interpretable outputs to support Price-to-Win planning
-- 🛠Deploy interactive apps to support capture decision-making
+- Deploy interactive apps to support capture decision-making
 
 ---
 
-## 🧪 Data Sources
+## Data Sources
 
 - [USAspending.gov](https://www.usaspending.gov/) — Awards from HHS, VA, CMS, and NIH  
 - 2018–2025, filtered for NAICS 541511, 541512, 541519  
@@ -37,7 +37,7 @@ Capture teams often operate with limited budget insight or price transparency. B
 
 ---
 
-## 🧹 Data Preparation
+## Data Preparation
 
 - Cleaned 43,000+ Health IT-related federal awards  
 - Engineered features like:
@@ -48,7 +48,7 @@ Capture teams often operate with limited budget insight or price transparency. B
 
 ---
 
-## 🔍 Modeling Approach
+## Modeling Approach
 
 - **Models Used**: XGBoost, Random Forest, Lasso (log-transformed target)  
 - **Top Model**: XGBoost with RMSE ≈ 1.71 | R² ≈ 0.35  
@@ -57,7 +57,7 @@ Capture teams often operate with limited budget insight or price transparency. B
 
 ---
 
-## 📊 Key Insights
+## Key Insights
 
 - NAICS 541512 + Firm Fixed Price awards were most predictable  
 - Competitive contracts (5+ offers) had tighter award distributions  
@@ -66,15 +66,15 @@ Capture teams often operate with limited budget insight or price transparency. B
 
 ---
 
-## 🧠 Strategic Takeaways for Capture Teams
+## Strategic Takeaways for Capture Teams
 
-- 📈 **Price-to-Win Estimation**: Predict award amounts by scenario  
-- 🚦 **Bid/No-Bid Support**: Model outputs help de-risk pursuit decisions  
-- 🏛️ **Agency-Specific Strategy**: Adapt pricing by agency or NAICS profile
+- **Price-to-Win Estimation**: Predict award amounts by scenario  
+- **Bid/No-Bid Support**: Model outputs help de-risk pursuit decisions  
+- **Agency-Specific Strategy**: Adapt pricing by agency or NAICS profile
 
 ---
 
-## 🧪 Streamlit Demo Apps
+## Streamlit Demo Apps
 
 These tools allow capture teams to simulate opportunity inputs and view pricing predictions.
 
@@ -86,7 +86,7 @@ These tools allow capture teams to simulate opportunity inputs and view pricing 
 
 ---
 
-## 🗂 Project Structure
+## Project Structure
 
 ```bash
 federal-bid-prediction/
@@ -102,7 +102,7 @@ federal-bid-prediction/
 
 ---
 
-## 📫 About the Author
+## About the Author
 
 **Casey Ortiz**  
 
