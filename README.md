@@ -82,7 +82,7 @@ These tools allow capture teams to simulate opportunity inputs and view pricing 
 - 🔗 [Bid Range Predictor](https://federal-healthit-bid-predictor-mzxes68t2cusms5kmjuyyr.streamlit.app)
 
 > *For model deployment code, see the companion repo:*  
-🔗 [federal-healthit-bid-predictor](https://github.com/Caseyio/federal-healthit-bid-predictor)
+- 🔗 [federal-healthit-bid-predictor](https://github.com/Caseyio/federal-healthit-bid-predictor)
 
 ---
 
